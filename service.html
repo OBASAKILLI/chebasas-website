@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service | Chebasas East Africa Limited</title>
+  <meta name="description" content="Chebasas East Africa Limited — service details." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="project.css" />
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar" class="scrolled">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🏗️</div>
+    <div class="nav-logo-text">CHEBA<span>SAS</span> <small style="font-size:0.45em;letter-spacing:0;color:var(--text-muted);font-family:'Outfit',sans-serif;font-weight:400">E.A. Ltd</small></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html#about">About</a></li>
+    <li><a href="index.html#services" class="active-link">Services</a></li>
+    <li><a href="index.html#projects">Projects</a></li>
+    <li><a href="index.html#why">Why Us</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+  </ul>
+  <a href="index.html#contact" class="nav-cta">Get a Quote</a>
+  <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- SERVICE CONTENT (rendered by JS) -->
+<div id="service-root">
+  <div class="proj-loading">
+    <div class="proj-spinner"></div>
+    <p style="color:var(--text-muted);font-size:0.9rem;letter-spacing:1px;text-transform:uppercase;">Loading service...</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-bottom">
+      <p>© 2026 <span>Chebasas East Africa Limited</span>. All rights reserved. Reg. No. PVT-DLULP3E8</p>
+      <p>Built with 🧱 in Eldoret, Kenya</p>
+    </div>
+  </div>
+</footer>
+
+<script src="service-data.js"></script>
+</body>
+</html>
