@@ -55,30 +55,62 @@ document.querySelectorAll('[data-target]').forEach(el => counterObserver.observe
 // FORM SUBMISSION
 function submitForm() {
   const fname = document.getElementById('fname').value.trim();
+  const lname = document.getElementById('lname').value.trim();
   const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
   const service = document.getElementById('service').value;
   const message = document.getElementById('message').value.trim();
 
-  if (!fname || !email || !service || !message) {
+  if (!fname || !lname || !email || !service || !message) {
     showToast('⚠️ Please fill in all required fields.', 'warn');
     return;
   }
 
   const btn = document.querySelector('.btn-submit');
-  btn.textContent = '✅ Request Sent! We\'ll Contact You Soon.';
-  btn.style.background = '#22c55e';
-  btn.style.color = '#fff';
+  btn.textContent = '⏳ Sending...';
   btn.disabled = true;
-  showToast('🎉 Thank you! Chebasas will reach out shortly.', 'success');
 
-  setTimeout(() => {
+  const emailBody = `
+    <h3>New Quote Request</h3>
+    <p><strong>Name:</strong> ${fname} ${lname}</p>
+    <p><strong>Email:</strong> ${email}</p>
+    <p><strong>Phone:</strong> ${phone}</p>
+    <p><strong>Service:</strong> ${service}</p>
+    <p><strong>Message:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>
+  `;
+
+  Email.send({
+    Host: "smtp.gmail.com",
+    Username: "sheilachumba7@gmail.com",
+    Password: "kslxootsfevkzwxh",
+    To: "emmanukiptoo98@gmail.com",
+    From: "sheilachumba7@gmail.com",
+    Subject: `Quote Request from ${fname} ${lname}`,
+    Body: emailBody
+  }).then(response => {
+    if (response === 'OK') {
+      showToast('🎉 Thank you! Your request has been sent.', 'success');
+      btn.textContent = '✅ Sent';
+      setTimeout(() => {
+        btn.textContent = '🚀 Send My Request';
+        btn.disabled = false;
+        document.querySelectorAll('#fname,#lname,#email,#phone,#service,#message').forEach(f => f.value = '');
+      }, 5000);
+    } else {
+      console.error('Email response error:', response);
+      showToast('❌ Error: ' + response, 'warn');
+      btn.textContent = '🚀 Send My Request';
+      btn.disabled = false;
+    }
+  }).catch(err => {
+    console.error('Email send error:', err);
+    showToast('❌ Failed to send email. Please try again later.', 'warn');
     btn.textContent = '🚀 Send My Request';
-    btn.style.background = '';
-    btn.style.color = '';
     btn.disabled = false;
-    document.querySelectorAll('#fname,#lname,#email,#phone,#service,#message').forEach(f => f.value = '');
-  }, 5000);
+  });
 }
+
+// Duplicate form handling removed
 
 // TOAST NOTIFICATION
 function showToast(msg, type = 'success') {
