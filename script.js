@@ -52,7 +52,9 @@ const counterObserver = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('[data-target]').forEach(el => counterObserver.observe(el));
 
-// FORM SUBMISSION WITH ROBUST SMTPJS & MAILTO FALLBACK
+// FORM SUBMISSION WITH ROBUST SMTPJS & SOPHISTICATED FALLBACK SELECTOR
+let currentPayload = "";
+
 function submitForm() {
   const fname = document.getElementById('fname').value.trim();
   const lname = document.getElementById('lname').value.trim();
@@ -76,22 +78,32 @@ function submitForm() {
   const mailtoUrl = `mailto:emmanukiptoo98@gmail.com?subject=${mailtoSubject}&body=${mailtoBody}`;
 
   const triggerMailtoFallback = (reason) => {
-    console.warn(`SMTPJS failed/timed out: ${reason}. Falling back to mailto.`);
-    showToast('✉️ Opening your email client to send request...', 'warn');
+    console.warn(`SMTPJS failed/timed out: ${reason}. Triggering custom submission selector.`);
     
-    // Open user's native email client with prefilled details
-    window.location.href = mailtoUrl;
+    // Prepare the copy-paste plain text payload
+    currentPayload = `Quote Request from ${fname} ${lname}\n====================================\n\nName: ${fname} ${lname}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nService: ${service}\n\nProject Description:\n${message}`;
 
-    // Reset button after fallback
-    setTimeout(() => {
-      btn.textContent = '🚀 Send My Request';
-      btn.disabled = false;
-    }, 3000);
+    // Gmail Web Compose URL (Standard browser endpoint)
+    const gmailWebComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=emmanukiptoo98@gmail.com&su=${mailtoSubject}&body=${mailtoBody}`;
+
+    // Populate modal links
+    document.getElementById('btn-gmail-web').href = gmailWebComposeUrl;
+    document.getElementById('btn-native-mail').href = mailtoUrl;
+
+    // Open the modal beautifully
+    document.getElementById('contact-modal').classList.add('active');
+
+    // Notify user
+    showToast('✉️ Please complete your request using the options.', 'warn');
+
+    // Reset button
+    btn.textContent = '🚀 Send My Request';
+    btn.disabled = false;
   };
 
   // 1. Instant check if SMTPJS library is blocked or not loaded
   if (typeof Email === 'undefined') {
-    triggerMailtoFallback('SMTPJS library not loaded (possibly blocked by an adblocker or privacy extension)');
+    triggerMailtoFallback('SMTPJS library not loaded (blocked by adblocker)');
     return;
   }
 
@@ -110,7 +122,7 @@ function submitForm() {
   const timeoutId = setTimeout(() => {
     if (!completed) {
       completed = true;
-      triggerMailtoFallback('SMTPJS connection timed out (server took too long to respond)');
+      triggerMailtoFallback('SMTPJS connection timed out');
     }
   }, 7000);
 
@@ -138,8 +150,8 @@ function submitForm() {
         }, 5000);
       } else {
         console.error('Email response error:', response);
-        showToast('❌ Server error. Redirecting to mail client...', 'warn');
-        setTimeout(() => triggerMailtoFallback(`SMTPJS returned error: ${response}`), 1500);
+        showToast('⚠️ SMTP error. opening options...', 'warn');
+        setTimeout(() => triggerMailtoFallback(`SMTPJS returned error: ${response}`), 1000);
       }
     }).catch(err => {
       if (completed) return;
@@ -158,7 +170,68 @@ function submitForm() {
   }
 }
 
-// Duplicate form handling removed
+// MODAL FALLBACK UTILITIES
+function closeContactModal() {
+  document.getElementById('contact-modal').classList.remove('active');
+}
+
+function copyModalDetails() {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(currentPayload).then(() => {
+      const title = document.getElementById('copy-btn-title');
+      title.textContent = "Copied to Clipboard! ✅";
+      showToast('📋 Request details copied to clipboard!', 'success');
+      setTimeout(() => {
+        title.textContent = "Copy Request Details";
+      }, 3000);
+    }).catch(err => {
+      fallbackCopyText(currentPayload);
+    });
+  } else {
+    fallbackCopyText(currentPayload);
+  }
+}
+
+function fallbackCopyText(text) {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.style.position = "fixed"; 
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    const title = document.getElementById('copy-btn-title');
+    title.textContent = "Copied to Clipboard! ✅";
+    showToast('📋 Request details copied to clipboard!', 'success');
+    setTimeout(() => {
+      title.textContent = "Copy Request Details";
+    }, 3000);
+  } catch (err) {
+    console.error('Fallback copy failed', err);
+    showToast('❌ Copy failed. Please select and copy manually.', 'warn');
+  }
+  document.body.removeChild(textArea);
+}
+
+function copyRecipientAddress() {
+  const address = "emmanukiptoo98@gmail.com";
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(address).then(() => {
+      showToast('📋 Recipient email copied!', 'success');
+    }).catch(() => {
+      const input = document.getElementById('modal-recipient-copy');
+      input.select();
+      document.execCommand('copy');
+      showToast('📋 Recipient email copied!', 'success');
+    });
+  } else {
+    const input = document.getElementById('modal-recipient-copy');
+    input.select();
+    document.execCommand('copy');
+    showToast('📋 Recipient email copied!', 'success');
+  }
+}
 
 // TOAST NOTIFICATION
 function showToast(msg, type = 'success') {
