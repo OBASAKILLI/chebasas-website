@@ -52,9 +52,7 @@ const counterObserver = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('[data-target]').forEach(el => counterObserver.observe(el));
 
-// FORM SUBMISSION WITH ROBUST SMTPJS & SOPHISTICATED FALLBACK SELECTOR
-let currentPayload = "";
-
+// FORM SUBMISSION (DIRECT SILENT BACKGROUND EMAIL SENDING)
 function submitForm() {
   const fname = document.getElementById('fname').value.trim();
   const lname = document.getElementById('lname').value.trim();
@@ -72,165 +70,45 @@ function submitForm() {
   btn.textContent = '⏳ Sending...';
   btn.disabled = true;
 
-  // Prepare standard mailto details for fallback
-  const mailtoSubject = encodeURIComponent(`Quote Request from ${fname} ${lname}`);
-  const mailtoBody = encodeURIComponent(`New Quote Request\n\nName: ${fname} ${lname}\nEmail: ${email}\nPhone: ${phone}\nService: ${service}\n\nMessage:\n${message}`);
-  const mailtoUrl = `mailto:emmanukiptoo98@gmail.com?subject=${mailtoSubject}&body=${mailtoBody}`;
-
-  const triggerMailtoFallback = (reason) => {
-    console.warn(`SMTPJS failed/timed out: ${reason}. Triggering custom submission selector.`);
-    
-    // Prepare the copy-paste plain text payload
-    currentPayload = `Quote Request from ${fname} ${lname}\n====================================\n\nName: ${fname} ${lname}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nService: ${service}\n\nProject Description:\n${message}`;
-
-    // Gmail Web Compose URL (Standard browser endpoint)
-    const gmailWebComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=emmanukiptoo98@gmail.com&su=${mailtoSubject}&body=${mailtoBody}`;
-
-    // Populate modal links
-    document.getElementById('btn-gmail-web').href = gmailWebComposeUrl;
-    document.getElementById('btn-native-mail').href = mailtoUrl;
-
-    // Open the modal beautifully
-    document.getElementById('contact-modal').classList.add('active');
-
-    // Notify user
-    showToast('✉️ Please complete your request using the options.', 'warn');
-
-    // Reset button
+  // Post directly to FormSubmit background API
+  fetch("https://formsubmit.co/ajax/emmanukiptoo98@gmail.com", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({
+      _subject: `New Quote Request from ${fname} ${lname}`,
+      "First Name": fname,
+      "Last Name": lname,
+      "Email Address": email,
+      "Phone Number": phone || "Not Provided",
+      "Requested Service": service,
+      "Project Description": message
+    })
+  })
+  .then(response => {
+    if (response.ok) {
+      return response.json();
+    } else {
+      throw new Error("Server error occurred");
+    }
+  })
+  .then(data => {
+    showToast('🎉 Thank you! Your request has been sent.', 'success');
+    btn.textContent = '✅ Sent';
+    setTimeout(() => {
+      btn.textContent = '🚀 Send My Request';
+      btn.disabled = false;
+      document.querySelectorAll('#fname,#lname,#email,#phone,#service,#message').forEach(f => f.value = '');
+    }, 5000);
+  })
+  .catch(err => {
+    console.error('Form submission error:', err);
+    showToast('❌ Connection error. Please try again.', 'warn');
     btn.textContent = '🚀 Send My Request';
     btn.disabled = false;
-  };
-
-  // 1. Instant check if SMTPJS library is blocked or not loaded
-  if (typeof Email === 'undefined') {
-    triggerMailtoFallback('SMTPJS library not loaded (blocked by adblocker)');
-    return;
-  }
-
-  const emailBody = `
-    <h3>New Quote Request</h3>
-    <p><strong>Name:</strong> ${fname} ${lname}</p>
-    <p><strong>Email:</strong> ${email}</p>
-    <p><strong>Phone:</strong> ${phone}</p>
-    <p><strong>Service:</strong> ${service}</p>
-    <p><strong>Message:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>
-  `;
-
-  let completed = false;
-
-  // 2. Set a 7-second timeout for the SMTPJS connection
-  const timeoutId = setTimeout(() => {
-    if (!completed) {
-      completed = true;
-      triggerMailtoFallback('SMTPJS connection timed out');
-    }
-  }, 7000);
-
-  try {
-    Email.send({
-      Host: "smtp.gmail.com",
-      Username: "sheilachumba7@gmail.com",
-      Password: "kslxootsfevkzwxh",
-      To: "emmanukiptoo98@gmail.com",
-      From: "sheilachumba7@gmail.com",
-      Subject: `Quote Request from ${fname} ${lname}`,
-      Body: emailBody
-    }).then(response => {
-      if (completed) return; // already timed out
-      completed = true;
-      clearTimeout(timeoutId);
-
-      if (response === 'OK') {
-        showToast('🎉 Thank you! Your request has been sent.', 'success');
-        btn.textContent = '✅ Sent';
-        setTimeout(() => {
-          btn.textContent = '🚀 Send My Request';
-          btn.disabled = false;
-          document.querySelectorAll('#fname,#lname,#email,#phone,#service,#message').forEach(f => f.value = '');
-        }, 5000);
-      } else {
-        console.error('Email response error:', response);
-        showToast('⚠️ SMTP error. opening options...', 'warn');
-        setTimeout(() => triggerMailtoFallback(`SMTPJS returned error: ${response}`), 1000);
-      }
-    }).catch(err => {
-      if (completed) return;
-      completed = true;
-      clearTimeout(timeoutId);
-      console.error('Email send error:', err);
-      triggerMailtoFallback(`Catch handler caught error: ${err.message || err}`);
-    });
-  } catch (error) {
-    if (!completed) {
-      completed = true;
-      clearTimeout(timeoutId);
-      console.error('SMTPJS direct execution failed:', error);
-      triggerMailtoFallback(`Execution failed: ${error.message || error}`);
-    }
-  }
-}
-
-// MODAL FALLBACK UTILITIES
-function closeContactModal() {
-  document.getElementById('contact-modal').classList.remove('active');
-}
-
-function copyModalDetails() {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(currentPayload).then(() => {
-      const title = document.getElementById('copy-btn-title');
-      title.textContent = "Copied to Clipboard! ✅";
-      showToast('📋 Request details copied to clipboard!', 'success');
-      setTimeout(() => {
-        title.textContent = "Copy Request Details";
-      }, 3000);
-    }).catch(err => {
-      fallbackCopyText(currentPayload);
-    });
-  } else {
-    fallbackCopyText(currentPayload);
-  }
-}
-
-function fallbackCopyText(text) {
-  const textArea = document.createElement("textarea");
-  textArea.value = text;
-  textArea.style.position = "fixed"; 
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-  try {
-    document.execCommand('copy');
-    const title = document.getElementById('copy-btn-title');
-    title.textContent = "Copied to Clipboard! ✅";
-    showToast('📋 Request details copied to clipboard!', 'success');
-    setTimeout(() => {
-      title.textContent = "Copy Request Details";
-    }, 3000);
-  } catch (err) {
-    console.error('Fallback copy failed', err);
-    showToast('❌ Copy failed. Please select and copy manually.', 'warn');
-  }
-  document.body.removeChild(textArea);
-}
-
-function copyRecipientAddress() {
-  const address = "emmanukiptoo98@gmail.com";
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(address).then(() => {
-      showToast('📋 Recipient email copied!', 'success');
-    }).catch(() => {
-      const input = document.getElementById('modal-recipient-copy');
-      input.select();
-      document.execCommand('copy');
-      showToast('📋 Recipient email copied!', 'success');
-    });
-  } else {
-    const input = document.getElementById('modal-recipient-copy');
-    input.select();
-    document.execCommand('copy');
-    showToast('📋 Recipient email copied!', 'success');
-  }
+  });
 }
 
 // TOAST NOTIFICATION

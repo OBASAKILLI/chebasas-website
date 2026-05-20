@@ -578,55 +578,6 @@
     </div>
   </div>
 </footer>
-
-<!-- CONTACT FALLBACK MODAL -->
-<div id="contact-modal" class="modal-overlay">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>✉️ Send Quote Request</h3>
-      <button class="modal-close" onclick="closeContactModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <p>Direct secure email sending is currently restricted in your browser (likely due to an adblocker, privacy extension, or network settings). Choose how you would like to complete your submission below:</p>
-      
-      <div class="modal-options">
-        <a id="btn-gmail-web" href="#" target="_blank" class="modal-btn-opt btn-gmail">
-          <span class="btn-opt-icon">🌐</span>
-          <div class="btn-opt-text">
-            <strong>Send via Gmail Web</strong>
-            <span>Opens Gmail in a new tab with your request fully pre-filled</span>
-          </div>
-        </a>
-
-        <a id="btn-native-mail" href="#" class="modal-btn-opt btn-native">
-          <span class="btn-opt-icon">💻</span>
-          <div class="btn-opt-text">
-            <strong>Send via Native Mail App</strong>
-            <span>Opens Outlook, Windows Mail, or default system email client</span>
-          </div>
-        </a>
-
-        <button onclick="copyModalDetails()" class="modal-btn-opt btn-copy">
-          <span class="btn-opt-icon">📋</span>
-          <div class="btn-opt-text">
-            <strong id="copy-btn-title">Copy Request Details</strong>
-            <span>Copy all details to clipboard to paste and email manually</span>
-          </div>
-        </button>
-      </div>
-      
-      <div class="modal-payload-box">
-        <label>Recipient Email Address:</label>
-        <div class="recipient-row">
-          <input type="text" value="emmanukiptoo98@gmail.com" readonly id="modal-recipient-copy" />
-          <button onclick="copyRecipientAddress()" class="btn-small-copy">📋 Copy Address</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="https://smtpjs.com/v3/smtp.js"></script>
-    <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
