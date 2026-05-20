@@ -52,7 +52,7 @@ const counterObserver = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('[data-target]').forEach(el => counterObserver.observe(el));
 
-// FORM SUBMISSION
+// FORM SUBMISSION WITH ROBUST SMTPJS & MAILTO FALLBACK
 function submitForm() {
   const fname = document.getElementById('fname').value.trim();
   const lname = document.getElementById('lname').value.trim();
@@ -70,6 +70,31 @@ function submitForm() {
   btn.textContent = '⏳ Sending...';
   btn.disabled = true;
 
+  // Prepare standard mailto details for fallback
+  const mailtoSubject = encodeURIComponent(`Quote Request from ${fname} ${lname}`);
+  const mailtoBody = encodeURIComponent(`New Quote Request\n\nName: ${fname} ${lname}\nEmail: ${email}\nPhone: ${phone}\nService: ${service}\n\nMessage:\n${message}`);
+  const mailtoUrl = `mailto:emmanukiptoo98@gmail.com?subject=${mailtoSubject}&body=${mailtoBody}`;
+
+  const triggerMailtoFallback = (reason) => {
+    console.warn(`SMTPJS failed/timed out: ${reason}. Falling back to mailto.`);
+    showToast('✉️ Opening your email client to send request...', 'warn');
+    
+    // Open user's native email client with prefilled details
+    window.location.href = mailtoUrl;
+
+    // Reset button after fallback
+    setTimeout(() => {
+      btn.textContent = '🚀 Send My Request';
+      btn.disabled = false;
+    }, 3000);
+  };
+
+  // 1. Instant check if SMTPJS library is blocked or not loaded
+  if (typeof Email === 'undefined') {
+    triggerMailtoFallback('SMTPJS library not loaded (possibly blocked by an adblocker or privacy extension)');
+    return;
+  }
+
   const emailBody = `
     <h3>New Quote Request</h3>
     <p><strong>Name:</strong> ${fname} ${lname}</p>
@@ -79,35 +104,58 @@ function submitForm() {
     <p><strong>Message:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>
   `;
 
-  Email.send({
-    Host: "smtp.gmail.com",
-    Username: "sheilachumba7@gmail.com",
-    Password: "kslxootsfevkzwxh",
-    To: "emmanukiptoo98@gmail.com",
-    From: "sheilachumba7@gmail.com",
-    Subject: `Quote Request from ${fname} ${lname}`,
-    Body: emailBody
-  }).then(response => {
-    if (response === 'OK') {
-      showToast('🎉 Thank you! Your request has been sent.', 'success');
-      btn.textContent = '✅ Sent';
-      setTimeout(() => {
-        btn.textContent = '🚀 Send My Request';
-        btn.disabled = false;
-        document.querySelectorAll('#fname,#lname,#email,#phone,#service,#message').forEach(f => f.value = '');
-      }, 5000);
-    } else {
-      console.error('Email response error:', response);
-      showToast('❌ Error: ' + response, 'warn');
-      btn.textContent = '🚀 Send My Request';
-      btn.disabled = false;
+  let completed = false;
+
+  // 2. Set a 7-second timeout for the SMTPJS connection
+  const timeoutId = setTimeout(() => {
+    if (!completed) {
+      completed = true;
+      triggerMailtoFallback('SMTPJS connection timed out (server took too long to respond)');
     }
-  }).catch(err => {
-    console.error('Email send error:', err);
-    showToast('❌ Failed to send email. Please try again later.', 'warn');
-    btn.textContent = '🚀 Send My Request';
-    btn.disabled = false;
-  });
+  }, 7000);
+
+  try {
+    Email.send({
+      Host: "smtp.gmail.com",
+      Username: "sheilachumba7@gmail.com",
+      Password: "kslxootsfevkzwxh",
+      To: "emmanukiptoo98@gmail.com",
+      From: "sheilachumba7@gmail.com",
+      Subject: `Quote Request from ${fname} ${lname}`,
+      Body: emailBody
+    }).then(response => {
+      if (completed) return; // already timed out
+      completed = true;
+      clearTimeout(timeoutId);
+
+      if (response === 'OK') {
+        showToast('🎉 Thank you! Your request has been sent.', 'success');
+        btn.textContent = '✅ Sent';
+        setTimeout(() => {
+          btn.textContent = '🚀 Send My Request';
+          btn.disabled = false;
+          document.querySelectorAll('#fname,#lname,#email,#phone,#service,#message').forEach(f => f.value = '');
+        }, 5000);
+      } else {
+        console.error('Email response error:', response);
+        showToast('❌ Server error. Redirecting to mail client...', 'warn');
+        setTimeout(() => triggerMailtoFallback(`SMTPJS returned error: ${response}`), 1500);
+      }
+    }).catch(err => {
+      if (completed) return;
+      completed = true;
+      clearTimeout(timeoutId);
+      console.error('Email send error:', err);
+      triggerMailtoFallback(`Catch handler caught error: ${err.message || err}`);
+    });
+  } catch (error) {
+    if (!completed) {
+      completed = true;
+      clearTimeout(timeoutId);
+      console.error('SMTPJS direct execution failed:', error);
+      triggerMailtoFallback(`Execution failed: ${error.message || error}`);
+    }
+  }
 }
 
 // Duplicate form handling removed
